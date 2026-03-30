@@ -6,70 +6,51 @@
     <title>2FA App</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/otplib/12.0.1/otplib-browser.js"></script>
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a2e; color: white; padding: 15px; text-align: center; }
-        h2 { color: #00d2ff; margin-bottom: 20px; }
-        .container { display: flex; flex-direction: column; gap: 15px; }
-        .card { background: #16213e; padding: 20px; border-radius: 15px; border: 1px solid #0f3460; box-shadow: 0 4px 15px rgba(0,0,0,0.3); position: relative; }
-        .email { font-size: 13px; color: #95a5a6; margin-bottom: 8px; display: block; overflow: hidden; text-overflow: ellipsis; }
-        .code { font-size: 32px; font-weight: bold; color: #e94560; letter-spacing: 5px; cursor: pointer; }
-        .timer-bar { height: 4px; background: #00d2ff; width: 100%; position: absolute; bottom: 0; left: 0; transition: width 1s linear; border-radius: 0 0 15px 15px; }
-        .copy-hint { font-size: 10px; color: #00d2ff; margin-top: 5px; }
+        body { font-family: sans-serif; background: #1a1a2e; color: white; padding: 15px; }
+        .card { background: #16213e; padding: 15px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #0f3460; }
+        .email { font-size: 12px; color: #95a5a6; }
+        .code { font-size: 28px; font-weight: bold; color: #e94560; }
     </style>
 </head>
 <body>
-    <h2>تطبيق الأكواد التلقائي 📱</h2>
-    <div id="codes-container" class="container">جاري قراءة البيانات...</div>
+    <h2>تطبيق الأكواد 📱</h2>
+    <div id="codes-container"></div>
 
     <script>
-        // اسم ملف البيانات بتاعك بالظبط
-        const fileName = 'جدول بيانات بلا عنوان (1).csv';
+        // البيانات المدمجة مباشرة
+        const accounts = [
+            {email: "xu4ff4og@mandaladark.i", secret: "FI6TOS6HNQ6J6XUYOV3Z7NOIKBDXPSHU"},
+            {email: "700qr4s7@mandaladark.i", secret: "FLQNFGIGTCD2V4GXPSOHEXBAY3CES4GR"},
+            {email: "mbqlg6lz@mandaladark.i", secret: "5X6MLQV5A34IHAKXAN3ZXEHME6LWEALD"},
+            {email: "uc1d7nug@duck.com", secret: "SFHMXUHSXESVFAZB6ILTVEGNGWFODEFU"},
+            {email: "12apq94f@duck.com", secret: "LVGOIITVX5CYXW3PVG2GFBCSPVWIMDFD"},
+            {email: "fq140f1a@duck.com", secret: "5T7HBCZDVTL7ZPQQZH2U4UY43YHALU5M"},
+            {email: "lofi6l9q@duck.com", secret: "PFVF6MNKPUOSYWMFFC2W5GAHSFGBHIN2"},
+            {email: "zu9dxuyy@duck.com", secret: "13S5MVENJDIBNWNX424CAIIEHPPDTFX7"},
+            {email: "2qq9hp2w@duck.com", secret: "ICWBKUZC6UEZWIL3VMPQAXLYHFC5SNNN"},
+            {email: "zpg0mjzo@duck.com", secret: "BLJUPFGAA5NQLSUBLXJ5IKYHF5636BXL"},
+            {email: "krh6du4i@duck.com", secret: "5ICBYVMWVBFDSMUZB5BQANPP36FL7YQN"},
+            {email: "ygnelzl1@duck.com", secret: "E2DOY2AMEYQQLOQAL6CRQHRI42S4J5C2"},
+            {email: "4dnhsynv@duck.com", secret: "DIIV32DESGCSDKNOJMZLECT4QWKFHDQE"},
+            {email: "cva18esd@duck.com", secret: "4HYWVCUM6L5HPMBNDTR4AL3NK3QJYT2E"},
+            {email: "gmzz8vtc@duck.com", secret: "7YRTMTZ2MN4IVJD7FPU2CHMQNZ4RQALY"},
+            {email: "dnvj7w8g@duck.com", secret: "S2QHCIERCLE2YBSH2NOL5A46DKNCW55A"},
+            {email: "qmpfw1gj@duck.com", secret: "PERURHFNRB4GV5VJLAVISKTAZMZQCGSR"},
+            {email: "btt9xe2f@duck.com", secret: "MWO3H3T5W2DYJAKPC7NQ44TETT476GXU"},
+            {email: "eouazhe@duck.com", secret: "TSZDCMV2K267IXLOQMKIQCWAO6STCYUQ"},
+            {email: "qvnbt28r@duck.com", secret: "3UH6JLNRDUDHJ6J7S3P5YRYPBT6VXNSF"}
+        ];
 
-        async function updateCodes() {
-            try {
-                const response = await fetch(fileName);
-                const text = await response.text();
-                const lines = text.split('\n');
-                const container = document.getElementById('codes-container');
-                container.innerHTML = '';
-
-                // نبدأ من السطر الثاني عشان نتخطى العناوين
-                for (let i = 1; i < lines.length; i++) {
-                    if (!lines[i].trim()) continue;
-                    
-                    // تقسيم السطر مع مراعاة الفواصل داخل علامات التنصيص
-                    const parts = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                    if (parts.length >= 2) {
-                        const email = parts[0].replace(/"/g, '').trim();
-                        // تنظيف المفتاح السري (تجاهل ما بعد النقطتين لو موجود)
-                        let secret = parts[1].replace(/"/g, '').split(':')[0].trim();
-
-                        try {
-                            const token = otplib.authenticator.generate(secret);
-                            container.innerHTML += `
-                                <div class="card" onclick="copyToClipboard('${token}')">
-                                    <span class="email">${email}</span>
-                                    <div class="code">${token}</div>
-                                    <div class="copy-hint">اضغط للنسخ</div>
-                                    <div class="timer-bar" id="bar-${i}"></div>
-                                </div>`;
-                        } catch (e) {
-                            console.error("خطأ في المفتاح: " + secret);
-                        }
-                    }
-                }
-            } catch (err) {
-                document.getElementById('codes-container').innerHTML = "خطأ في تحميل ملف الـ CSV. تأكد من وجوده بجانب ملف index.html";
-            }
+        function render() {
+            const container = document.getElementById('codes-container');
+            container.innerHTML = '';
+            accounts.forEach(acc => {
+                const token = otplib.authenticator.generate(acc.secret);
+                container.innerHTML += `<div class="card"><span class="email">${acc.email}</span><div class="code">${token}</div></div>`;
+            });
         }
-
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text);
-            alert("تم نسخ الكود: " + text);
-        }
-
-        // تحديث كل ثانية عشان شريط الوقت، وتوليد كود جديد كل 30 ثانية
-        setInterval(updateCodes, 30000);
-        updateCodes();
+        setInterval(render, 30000);
+        render();
     </script>
 </body>
 </html>
