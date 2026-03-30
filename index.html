@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2FA App</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/otplib/12.0.1/otplib-browser.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a2e; color: white; padding: 15px; text-align: center; }
+        h2 { color: #00d2ff; margin-bottom: 20px; }
+        .container { display: flex; flex-direction: column; gap: 15px; }
+        .card { background: #16213e; padding: 20px; border-radius: 15px; border: 1px solid #0f3460; box-shadow: 0 4px 15px rgba(0,0,0,0.3); position: relative; }
+        .email { font-size: 13px; color: #95a5a6; margin-bottom: 8px; display: block; overflow: hidden; text-overflow: ellipsis; }
+        .code { font-size: 32px; font-weight: bold; color: #e94560; letter-spacing: 5px; cursor: pointer; }
+        .timer-bar { height: 4px; background: #00d2ff; width: 100%; position: absolute; bottom: 0; left: 0; transition: width 1s linear; border-radius: 0 0 15px 15px; }
+        .copy-hint { font-size: 10px; color: #00d2ff; margin-top: 5px; }
+    </style>
+</head>
+<body>
+    <h2>تطبيق الأكواد التلقائي 📱</h2>
+    <div id="codes-container" class="container">جاري قراءة البيانات...</div>
+
+    <script>
+        // اسم ملف البيانات بتاعك بالظبط
+        const fileName = 'جدول بيانات بلا عنوان (1).csv';
+
+        async function updateCodes() {
+            try {
+                const response = await fetch(fileName);
+                const text = await response.text();
+                const lines = text.split('\n');
+                const container = document.getElementById('codes-container');
+                container.innerHTML = '';
+
+                // نبدأ من السطر الثاني عشان نتخطى العناوين
+                for (let i = 1; i < lines.length; i++) {
+                    if (!lines[i].trim()) continue;
+                    
+                    // تقسيم السطر مع مراعاة الفواصل داخل علامات التنصيص
+                    const parts = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                    if (parts.length >= 2) {
+                        const email = parts[0].replace(/"/g, '').trim();
+                        // تنظيف المفتاح السري (تجاهل ما بعد النقطتين لو موجود)
+                        let secret = parts[1].replace(/"/g, '').split(':')[0].trim();
+
+                        try {
+                            const token = otplib.authenticator.generate(secret);
+                            container.innerHTML += `
+                                <div class="card" onclick="copyToClipboard('${token}')">
+                                    <span class="email">${email}</span>
+                                    <div class="code">${token}</div>
+                                    <div class="copy-hint">اضغط للنسخ</div>
+                                    <div class="timer-bar" id="bar-${i}"></div>
+                                </div>`;
+                        } catch (e) {
+                            console.error("خطأ في المفتاح: " + secret);
+                        }
+                    }
+                }
+            } catch (err) {
+                document.getElementById('codes-container').innerHTML = "خطأ في تحميل ملف الـ CSV. تأكد من وجوده بجانب ملف index.html";
+            }
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text);
+            alert("تم نسخ الكود: " + text);
+        }
+
+        // تحديث كل ثانية عشان شريط الوقت، وتوليد كود جديد كل 30 ثانية
+        setInterval(updateCodes, 30000);
+        updateCodes();
+    </script>
+</body>
+</html>
