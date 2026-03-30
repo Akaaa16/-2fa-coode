@@ -2,52 +2,50 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2FA App</title>
+    <title>2FA Manager</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/otplib/12.0.1/otplib-browser.js"></script>
     <style>
-        body { font-family: sans-serif; background: #1a1a2e; color: white; padding: 15px; }
-        .card { background: #16213e; padding: 15px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #0f3460; }
-        .email { font-size: 12px; color: #95a5a6; }
-        .code { font-size: 28px; font-weight: bold; color: #e94560; }
+        body { background: #0f172a; color: white; font-family: sans-serif; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .card { background: #1e293b; border-radius: 12px; padding: 15px; margin-bottom: 10px; width: 100%; max-width: 400px; display: flex; justify-content: space-between; align-items: center; border-right: 4px solid #f472b6; }
+        .email-text { font-size: 13px; color: #94a3b8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; }
+        .code-num { color: #f472b6; font-size: 22px; font-weight: bold; }
+        .copy-btn { background: #38bdf8; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
-    <h2>تطبيق الأكواد 📱</h2>
-    <div id="codes-container"></div>
+
+    <h2>🔐 مدير الأكواد</h2>
+    <div id="main-container" style="width: 100%; max-width: 400px;"></div>
 
     <script>
-        const accounts = [
-            {email: "xu4ff4og@mandaladark.i", secret: "FI6TOS6HNQ6J6XUYOV3Z7NOIKBDXPSHU"},
-            {email: "700qr4s7@mandaladark.i", secret: "FLQNFGIGTCD2V4GXPSOHEXBAY3CES4GR"},
-            {email: "mbqlg6lz@mandaladark.i", secret: "5X6MLQV5A34IHAKXAN3ZXEHME6LWEALD"},
-            {email: "uc1d7nug@duck.com", secret: "SFHMXUHSXESVFAZB6ILTVEGNGWFODEFU"},
-            {email: "12apq94f@duck.com", secret: "LVGOIITVX5CYXW3PVG2GFBCSPVWIMDFD"},
-            {email: "fq140f1a@duck.com", secret: "5T7HBCZDVTL7ZPQQZH2U4UY43YHALU5M"},
-            {email: "lofi6l9q@duck.com", secret: "PFVF6MNKPUOSYWMFFC2W5GAHSFGBHIN2"},
-            {email: "zu9dxuyy@duck.com", secret: "13S5MVENJDIBNWNX424CAIIEHPPDTFX7"},
-            {email: "2qq9hp2w@duck.com", secret: "ICWBKUZC6UEZWIL3VMPQAXLYHFC5SNNN"},
-            {email: "zpg0mjzo@duck.com", secret: "BLJUPFGAA5NQLSUBLXJ5IKYHF5636BXL"},
-            {email: "krh6du4i@duck.com", secret: "5ICBYVMWVBFDSMUZB5BQANPP36FL7YQN"},
-            {email: "ygnelzl1@duck.com", secret: "E2DOY2AMEYQQLOQAL6CRQHRI42S4J5C2"},
-            {email: "4dnhsynv@duck.com", secret: "DIIV32DESGCSDKNOJMZLECT4QWKFHDQE"},
-            {email: "cva18esd@duck.com", secret: "4HYWVCUM6L5HPMBNDTR4AL3NK3QJYT2E"},
-            {email: "gmzz8vtc@duck.com", secret: "7YRTMTZ2MN4IVJD7FPU2CHMQNZ4RQALY"},
-            {email: "dnvj7w8g@duck.com", secret: "S2QHCIERCLE2YBSH2NOL5A46DKNCW55A"},
-            {email: "qmpfw1gj@duck.com", secret: "PERURHFNRB4GV5VJLAVISKTAZMZQCGSR"},
-            {email: "btt9xe2f@duck.com", secret: "MWO3H3T5W2DYJAKPC7NQ44TETT476GXU"},
-            {email: "eouazhe@duck.com", secret: "TSZDCMV2K267IXLOQMKIQCWAO6STCYUQ"},
-            {email: "qvnbt28r@duck.com", secret: "3UH6JLNRDUDHJ6J7S3P5YRYPBT6VXNSF"}
-        ];
+        const rawData = `mbqlg6lz@mandaladark.io:5X6MLQV5A34IHAKXAN3ZXEHME6LWEALD
+xu4ff4og@mandaladark.i:FI6TOS6HNQ6J6XUYOV3Z7NOIKBDXPSHU
+700qr4s7@mandaladark.i:FLQNFGIGTCD2V4GXPSOHEXBAY3CES4GR`;
+
+        const accounts = rawData.trim().split('\n').map(line => {
+            const [email, secret] = line.trim().split(':');
+            return { email, secret };
+        });
 
         function render() {
-            const container = document.getElementById('codes-container');
+            const container = document.getElementById('main-container');
             container.innerHTML = '';
             accounts.forEach(acc => {
-                const token = otplib.authenticator.generate(acc.secret);
-                container.innerHTML += `<div class="card"><span class="email">${acc.email}</span><div class="code">${token}</div></div>`;
+                try {
+                    const token = otplib.authenticator.generate(acc.secret);
+                    container.innerHTML += `
+                        <div class="card">
+                            <div class="email-text">${acc.email}</div>
+                            <div>
+                                <span class="code-num">${token}</span>
+                                <button class="copy-btn" onclick="navigator.clipboard.writeText('${token}')">نسخ</button>
+                            </div>
+                        </div>
+                    `;
+                } catch(e) { console.error("Error generating token for " + acc.email); }
             });
         }
+        
         setInterval(render, 30000);
         render();
     </script>
